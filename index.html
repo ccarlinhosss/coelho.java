@@ -32,6 +32,20 @@
   #timer { top: 55px; }
   #level { top: 90px; }
   #goal { top: 125px; }
+
+  #reset {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    background: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  #reset:hover { background: #eee; }
 </style>
 </head>
 <body>
@@ -39,6 +53,7 @@
 <div id="timer">Tempo: 0</div>
 <div id="level">Nível: 1</div>
 <div id="goal">Meta: 200 pontos</div>
+<button id="reset">🔄 Reiniciar</button>
 <canvas id="gameCanvas" width="700" height="650"></canvas>
 
 <script>
@@ -48,20 +63,20 @@ const ctx = canvas.getContext("2d");
 const gridSize = 30;
 const tileCount = canvas.width / gridSize;
 
-// Jogador
-let coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize };
+// Jogador com pulinhos
+let coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize, salto: 0 };
 
 // Itens
 let cenouras = [];
 let morangos = [];
 
-// Decorações
+// Decorações (nuvens)
 let decoracoes = [];
 let score = 0;
 
-// Áudios
-const audioCenoura = new Audio("cenoura.mp3");
-const audioMorango = new Audio("morango.mp3");
+// Áudio removido para GitHub Pages
+const audioCenoura = new Audio();
+const audioMorango = new Audio();
 
 // Níveis
 let nivel = 1;
@@ -74,6 +89,7 @@ const niveis = {
   3: { pontos: 800, tempo: 180 }
 };
 
+// Gerar itens
 function gerarItemArray(array, emoji, quantidade){
   array.length = 0;
   for(let i=0;i<quantidade;i++){
@@ -85,15 +101,17 @@ function gerarItemArray(array, emoji, quantidade){
   }
 }
 
+// Atualizar HUD
 function atualizarHUD() {
   document.getElementById("score").innerText = "Pontuação: " + score;
-  document.getElementById("timer").innerText = "Tempo: " + tempoRestante;
+  document.getElementById("timer").innerText = "Tempo: " + tempoRestante + "s";
   document.getElementById("level").innerText = "Nível: " + nivel;
   document.getElementById("goal").innerText = "Meta: " + niveis[nivel].pontos + " pontos";
 }
 
+// Resetar nível
 function resetarNivel(){
-  coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize };
+  coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize, salto: 0 };
   gerarItemArray(cenouras, "🥕", 7);
   gerarItemArray(morangos, "🍓", 5);
   tempoRestante = niveis[nivel].tempo;
@@ -111,21 +129,19 @@ function resetarNivel(){
           nivel++;
           resetarNivel();
         } else {
-          alert("🎉 Parabéns! Você completou todos os níveis!");
+          alert("🎉 Parabéns! Você completou todos os níveis! Pontuação final: "+score);
           nivel = 1;
           resetarNivel();
         }
       } else {
-        alert("⏳ Tempo esgotado! Tente novamente no nível " + nivel);
+        alert("⏳ Tempo esgotado! Recomeçando nível "+nivel);
         resetarNivel();
       }
     }
   },1000);
 }
 
-gerarItemArray(cenouras, "🥕", 7);
-gerarItemArray(morangos, "🍓", 5);
-
+// Decorações (nuvens)
 for(let i=0;i<10;i++){
   decoracoes.push({
     x: Math.random() * canvas.width,
@@ -135,6 +151,7 @@ for(let i=0;i<10;i++){
   });
 }
 
+// Controle de movimento
 let dx=0, dy=0;
 document.addEventListener("keydown", e=>{
   if(e.key==="ArrowUp"||e.key==="w"){dx=0; dy=-1;}
@@ -143,6 +160,13 @@ document.addEventListener("keydown", e=>{
   if(e.key==="ArrowRight"||e.key==="d"){dx=1; dy=0;}
 });
 
+// Botão Reset
+document.getElementById("reset").onclick = ()=>{
+  nivel = 1;
+  resetarNivel();
+};
+
+// Fundo
 function desenharFundo(){
   const grad = ctx.createLinearGradient(0,0,0,canvas.height);
   grad.addColorStop(0,"#3cb371");
@@ -151,12 +175,18 @@ function desenharFundo(){
   ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
+// Loop do jogo
 function gameLoop(){
+  // Movimento suave
   coelho.px += (coelho.x*gridSize - coelho.px)*0.2;
   coelho.py += (coelho.y*gridSize - coelho.py)*0.2;
 
+  // efeito de pulo
+  coelho.salto = Math.sin(Date.now()/150)*5;
+
   desenharFundo();
 
+  // Decorações
   decoracoes.forEach(d=>{
     ctx.font="28px Arial";
     ctx.fillText(d.tipo, d.x, d.y);
@@ -164,48 +194,48 @@ function gameLoop(){
     if(d.x>canvas.width)d.x=-50;
   });
 
+  // Itens
   ctx.font="28px Arial";
   cenouras.forEach(c=>ctx.fillText(c.tipo, c.x*gridSize, c.y*gridSize+gridSize));
   morangos.forEach(m=>ctx.fillText(m.tipo, m.x*gridSize, m.y*gridSize+gridSize));
 
+  // Coelho
   ctx.font="28px Arial";
-  ctx.fillText("🐇", coelho.px, coelho.py + gridSize);
+  ctx.fillText("🐇", coelho.px, coelho.py + gridSize - coelho.salto);
 
+  // Movimento
   coelho.x += dx;
   coelho.y += dy;
   dx=0; dy=0;
 
-  if(coelho.x<0)coelho.x=0;
-  if(coelho.y<0)coelho.y=0;
-  if(coelho.x>=tileCount)coelho.x=tileCount-1;
-  if(coelho.y>=tileCount)coelho.y=tileCount-1;
+  if(coelho.x<0) coelho.x=0;
+  if(coelho.y<0) coelho.y=0;
+  if(coelho.x>=tileCount) coelho.x=tileCount-1;
+  if(coelho.y>=tileCount) coelho.y=tileCount-1;
 
+  // Colisões
   cenouras.forEach((c,i)=>{
     if(c.x===coelho.x && c.y===coelho.y){
-      score+=5;
-      audioCenoura.currentTime=0;
-      audioCenoura.play().catch(()=>{});
+      score += 5;
       cenouras[i] = {x: Math.floor(Math.random()*tileCount), y: Math.floor(Math.random()*tileCount), tipo:"🥕"};
     }
   });
-
   morangos.forEach((m,i)=>{
     if(m.x===coelho.x && m.y===coelho.y){
-      score+=10;
-      audioMorango.currentTime=0;
-      audioMorango.play().catch(()=>{});
+      score += 10;
       morangos[i] = {x: Math.floor(Math.random()*tileCount), y: Math.floor(Math.random()*tileCount), tipo:"🍓"};
     }
   });
 
   atualizarHUD();
 
+  // Passar de nível automaticamente
   if(score >= niveis[nivel].pontos){
     if(nivel < 3){
       nivel++;
       resetarNivel();
     } else {
-      alert("🎉 Parabéns! Você completou todos os níveis!");
+      alert("🎉 Parabéns! Você completou todos os níveis! Pontuação final: "+score);
       nivel = 1;
       resetarNivel();
     }
@@ -214,6 +244,7 @@ function gameLoop(){
   requestAnimationFrame(gameLoop);
 }
 
+// Inicia o jogo
 resetarNivel();
 gameLoop();
 </script>
