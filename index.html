@@ -5,7 +5,7 @@
 <title>Jogo do Coelho Animado</title>
 <style>
   body {
-    background: #87CEEB; /* céu azul */
+    background: #87CEEB;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -18,10 +18,10 @@
     border: 4px solid white;
     border-radius: 15px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    background: linear-gradient(#3cb371, #2e8b57); /* grama */
+    background: linear-gradient(#3cb371, #2e8b57);
   }
 
-  #score, #timer, #level {
+  #score, #timer, #level, #goal {
     position: absolute;
     left: 20px;
     font-size: 22px;
@@ -31,12 +31,14 @@
   #score { top: 20px; }
   #timer { top: 55px; }
   #level { top: 90px; }
+  #goal { top: 125px; }
 </style>
 </head>
 <body>
 <div id="score">Pontuação: 0</div>
 <div id="timer">Tempo: 0</div>
 <div id="level">Nível: 1</div>
+<div id="goal">Meta: 200 pontos</div>
 <canvas id="gameCanvas" width="700" height="650"></canvas>
 
 <script>
@@ -53,27 +55,25 @@ let coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize };
 let cenouras = [];
 let morangos = [];
 
-// Decorações (nuvens, flores)
+// Decorações
 let decoracoes = [];
 let score = 0;
 
-// Áudios locais (coloque "cenoura.mp3" e "morango.mp3" na mesma pasta do index.html)
+// Áudios
 const audioCenoura = new Audio("cenoura.mp3");
 const audioMorango = new Audio("morango.mp3");
 
 // Níveis
 let nivel = 1;
-let tempoRestante = 60; // segundos
+let tempoRestante = 60; 
 let intervalTimer;
 
-// Configurações por nível
 const niveis = {
   1: { pontos: 200, tempo: 60 },
   2: { pontos: 450, tempo: 120 },
   3: { pontos: 800, tempo: 180 }
 };
 
-// Gerar itens aleatórios
 function gerarItemArray(array, emoji, quantidade){
   array.length = 0;
   for(let i=0;i<quantidade;i++){
@@ -85,20 +85,25 @@ function gerarItemArray(array, emoji, quantidade){
   }
 }
 
+function atualizarHUD() {
+  document.getElementById("score").innerText = "Pontuação: " + score;
+  document.getElementById("timer").innerText = "Tempo: " + tempoRestante;
+  document.getElementById("level").innerText = "Nível: " + nivel;
+  document.getElementById("goal").innerText = "Meta: " + niveis[nivel].pontos + " pontos";
+}
+
 function resetarNivel(){
   coelho = { x: 5, y: 5, px: 5*gridSize, py: 5*gridSize };
   gerarItemArray(cenouras, "🥕", 7);
   gerarItemArray(morangos, "🍓", 5);
   tempoRestante = niveis[nivel].tempo;
   score = 0;
-  document.getElementById("score").innerText = "Pontuação: " + score;
-  document.getElementById("timer").innerText = "Tempo: " + tempoRestante;
-  document.getElementById("level").innerText = "Nível: " + nivel;
+  atualizarHUD();
 
   clearInterval(intervalTimer);
   intervalTimer = setInterval(()=>{
     tempoRestante--;
-    document.getElementById("timer").innerText = "Tempo: " + tempoRestante;
+    atualizarHUD();
 
     if(tempoRestante <= 0){
       if(score >= niveis[nivel].pontos){
@@ -121,7 +126,6 @@ function resetarNivel(){
 gerarItemArray(cenouras, "🥕", 7);
 gerarItemArray(morangos, "🍓", 5);
 
-// Decorações
 for(let i=0;i<10;i++){
   decoracoes.push({
     x: Math.random() * canvas.width,
@@ -131,7 +135,6 @@ for(let i=0;i<10;i++){
   });
 }
 
-// Controle
 let dx=0, dy=0;
 document.addEventListener("keydown", e=>{
   if(e.key==="ArrowUp"||e.key==="w"){dx=0; dy=-1;}
@@ -140,32 +143,20 @@ document.addEventListener("keydown", e=>{
   if(e.key==="ArrowRight"||e.key==="d"){dx=1; dy=0;}
 });
 
-// Função para desenhar fundo com grama e flores pequenas
 function desenharFundo(){
   const grad = ctx.createLinearGradient(0,0,0,canvas.height);
   grad.addColorStop(0,"#3cb371");
   grad.addColorStop(1,"#2e8b57");
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // Flores pequenas
-  for(let i=0;i<20;i++){
-    ctx.fillStyle = "pink";
-    ctx.beginPath();
-    ctx.arc(i*40 + 15, canvas.height - (i*15 + 20), 5,0,2*Math.PI);
-    ctx.fill();
-  }
 }
 
-// Função principal do jogo
 function gameLoop(){
-  // Atualiza posições do coelho suavemente
   coelho.px += (coelho.x*gridSize - coelho.px)*0.2;
   coelho.py += (coelho.y*gridSize - coelho.py)*0.2;
 
   desenharFundo();
 
-  // Desenhar decorações animadas
   decoracoes.forEach(d=>{
     ctx.font="28px Arial";
     ctx.fillText(d.tipo, d.x, d.y);
@@ -173,27 +164,22 @@ function gameLoop(){
     if(d.x>canvas.width)d.x=-50;
   });
 
-  // Desenhar itens
   ctx.font="28px Arial";
   cenouras.forEach(c=>ctx.fillText(c.tipo, c.x*gridSize, c.y*gridSize+gridSize));
   morangos.forEach(m=>ctx.fillText(m.tipo, m.x*gridSize, m.y*gridSize+gridSize));
 
-  // Desenhar coelho
   ctx.font="28px Arial";
   ctx.fillText("🐇", coelho.px, coelho.py + gridSize);
 
-  // Movimento do coelho
   coelho.x += dx;
   coelho.y += dy;
   dx=0; dy=0;
 
-  // Limites
   if(coelho.x<0)coelho.x=0;
   if(coelho.y<0)coelho.y=0;
   if(coelho.x>=tileCount)coelho.x=tileCount-1;
   if(coelho.y>=tileCount)coelho.y=tileCount-1;
 
-  // Colisão com cenouras
   cenouras.forEach((c,i)=>{
     if(c.x===coelho.x && c.y===coelho.y){
       score+=5;
@@ -203,7 +189,6 @@ function gameLoop(){
     }
   });
 
-  // Colisão com morangos
   morangos.forEach((m,i)=>{
     if(m.x===coelho.x && m.y===coelho.y){
       score+=10;
@@ -213,9 +198,8 @@ function gameLoop(){
     }
   });
 
-  document.getElementById("score").innerText = "Pontuação: "+score;
+  atualizarHUD();
 
-  // Verificação automática de avanço de nível
   if(score >= niveis[nivel].pontos){
     if(nivel < 3){
       nivel++;
@@ -230,7 +214,6 @@ function gameLoop(){
   requestAnimationFrame(gameLoop);
 }
 
-// Inicia o jogo
 resetarNivel();
 gameLoop();
 </script>
