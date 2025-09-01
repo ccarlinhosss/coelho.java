@@ -74,10 +74,6 @@ let morangos = [];
 let decoracoes = [];
 let score = 0;
 
-// Áudio removido para GitHub Pages
-const audioCenoura = new Audio();
-const audioMorango = new Audio();
-
 // Níveis
 let nivel = 1;
 let tempoRestante = 60; 
@@ -176,13 +172,14 @@ function desenharFundo(){
 }
 
 // Loop do jogo
-function gameLoop(){
+let startTime = performance.now();
+function gameLoop(timestamp){
   // Movimento suave
   coelho.px += (coelho.x*gridSize - coelho.px)*0.2;
   coelho.py += (coelho.y*gridSize - coelho.py)*0.2;
 
-  // efeito de pulo
-  coelho.salto = Math.sin(Date.now()/150)*5;
+  // efeito de pulo confiável usando performance.now()
+  coelho.salto = Math.sin(timestamp/150)*5;
 
   desenharFundo();
 
@@ -246,7 +243,7 @@ function gameLoop(){
 
 // Inicia o jogo
 resetarNivel();
-gameLoop();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
